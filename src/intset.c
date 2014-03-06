@@ -93,6 +93,7 @@ static int64_t _intsetGet(intset *is, int pos) {
  * 将 intset 上给定 pos 的值设置为 value
  *
  * T = theta(1)
+ * memrevxxxifbe的定义在endianconv.h中, 用于大小端转换的
  */
 static void _intsetSet(intset *is, int pos, int64_t value) {
     uint32_t encoding = intrev32ifbe(is->encoding);
@@ -126,12 +127,13 @@ intset *intsetNew(void) {
 
 /*
  * 调整 intset 的大小
+ * #增加intset可以存储的数据元素个数
  *
  * T = O(n)
  */
 static intset *intsetResize(intset *is, uint32_t len) {
     uint32_t size = len*intrev32ifbe(is->encoding);
-    is = zrealloc(is,sizeof(intset)+size);
+    is = zrealloc(is,sizeof(intset)+size); //zrealloc的保证没有内存泄漏
     return is;
 }
 
@@ -169,7 +171,7 @@ static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
         }
     }
 
-    // 在 is 元素数组中进行二分查找 
+    // 在 is 元素数组中进行二分查找, 因为is中的元素是排列有序的
     while(max >= min) {
         mid = (min+max)/2;
         cur = _intsetGet(is,mid);
@@ -228,10 +230,19 @@ static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     // |  ??????  |    1    |    2    |    3    |   ??? 预留给新元素的空位
     //
     //  "prepend" 是为插入新值而设置的索引偏移量
+    // #1. 如果prepend=0, 该循环是否是多余的?? @question
     while(length--)
         _intsetSet(is,length+prepend,_intsetGetEncoded(is,length,curenc));
 
     /* Set the value at the beginning or the end. */
+    // #2.插入的value的位置感觉不对, 以上述的数据插入来看, 如果插入2,则会插入到最后,
+    // 这样set里数据就不是按顺序排列的了 @question @ok
+    // #3.因为set是不重复的, 还没有判断元素重复的情况 @question @ok
+
+    // #问题解决:
+    // ##2. 在插入数据时, 就已经先进行判断了, 所以该情况本身就不会出现
+    // ##3. 插入时, 先要对数据类型进行提升, 因此值肯定是在目前content中的两端
+    // 而此时使用是否大于0就可判断出是否添加在头还是添加在尾部
     if (prepend)
         _intsetSet(is,0,value);
     else
@@ -311,7 +322,7 @@ intset *intsetAdd(intset *is, int64_t value, uint8_t *success) {
          * the value when it cannot be found. */
         // 如果值已经存在，那么直接返回
         // 如果不存在，那么设置 *pos 设置为新元素添加的位置
-        if (intsetSearch(is,value,&pos)) {
+        if (intsetSearch(is,value,&pos)) { //# 值存在, 不插入
             if (success) *success = 0;
             return is;
         }

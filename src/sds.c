@@ -157,6 +157,7 @@ void sdsclear(sds s) {
  *
  * T = O(N)
  */
+//只增加空间的长度, 还未添加数据进来
 sds sdsMakeRoomFor(
     sds s,
     size_t addlen   // 需要增加的空间长度

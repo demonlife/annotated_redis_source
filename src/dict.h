@@ -118,6 +118,8 @@ typedef struct dict {
     void *privdata;
 
     // 哈希表（2个）
+    // 0号哈希表(ht[0])是字典主要使用的哈希表,
+    // 而1号哈希表则只有在程序对0号哈希表进行rehash时才使用
     dictht ht[2];       
 
     // 记录 rehash 进度的标志，值为-1 表示 rehash 未进行
