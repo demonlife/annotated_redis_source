@@ -42,6 +42,8 @@
  *
  * <zllen> 是节点的数量，为 ``uint16_t`` 。
  * 当这个值大于 2**16-2 时，需要遍历整个列表，才能计算出列表的长度
+ * #1. 为什么在大于2**16 - 2的情况下需要遍历整个链表 
+ * #2. 为什么不使用uint32_t等更大的数据类型 @question
  *
  * <zlend> is a single byte special value, equal to 255, which indicates the
  * end of the list.
